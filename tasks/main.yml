@@ -14,6 +14,57 @@
       - checks
 
 #
+#
+# Windows / work in progress
+#
+#
+#- name: '[PYTHON3] checking existing Java installation'
+#  win_command: "java -version"
+#  register: java_checking_windows
+#  ignore_errors: True
+#  when: ansible_os_family=="Windows"
+#
+#- block:
+#
+#  - name: '[PYTHON3] copy the installer'
+#    win_copy:
+#      src: "{{ python3_installer.file }}"
+#      dest: "{{ansible_env['TEMP']}}/"  
+#    when: False
+#
+#  - name: '[PYTHON3] installation'
+#    win_command: "start /w {{python3_installer.file | basename }} /quiet"
+#    args:
+#      executable: cmd
+#      chdir: "{{ ansible_env['TEMP'] }}"
+#
+#  - name: '[PYTHON3] installation'
+#    win_package:
+#      path: "{{ ansible_env['TEMP'] }}\{{python3_installer.file | basename}}"
+#      state: present
+#      InstallAllUsers=1 Include_debug=1 TargetDir=C:\Python34
+#
+#  - name: '[PYTHON3] check python3 from prompt'
+#    win_command: "python3 --version"
+#    register: python3_checking_windows
+#    ignore_errors: False
+#  
+#  # can be in a separate block if we do not want to install java on some conditions
+#  - name: '[PYTHON3] finding the installation path'
+#    win_shell: "(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\JavaSoft\\Java Development Kit\\1.{{ java_version_major }}' -Name JavaHome).JavaHome"
+#    register: python3_home_windows_tmp
+#  
+#  # replacing backslashes to forward ones
+#  - name: '[PYTHON3] finding the installation path'
+#    set_fact:
+#      python_binary_location: '{{ "".join(python3_home_windows_tmp.stdout_lines) | replace("\\", "/") }}'
+#      
+#  when: ansible_os_family=="Windows"
+
+
+
+
+#
 # OSX
 #
 - block:
