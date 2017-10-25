@@ -1,0 +1,12 @@
+
+# this variable needs to be defined
+bamboo_capabilities: {}
+
+python3_version:
+  major: 0
+  minor: 0
+  patch: 0
+
+# this is for installer provided versions of python (OSX)
+python3_installer:
+  file: "does-not-exist"

@@ -1,0 +1,10 @@
+#
+# Checking that required variables are set
+#
+
+- name: '[PYTHON3] Checking that required variables are set'
+  fail: msg="{{ item }} is not defined"
+  when: not {{ item }}
+  with_items:
+    - python3_version
+    - python3_installer

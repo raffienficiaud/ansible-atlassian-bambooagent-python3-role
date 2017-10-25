@@ -1,0 +1,75 @@
+# This file installs packages and declares associated capabilities
+# For each defined package,
+# - it transfers the package to the host
+# - it runs a specific installation script
+# - it declares the associated capabilities, if any
+# - it does not cleans up the file. The file is in /tmp, so it should be safe
+#   to keep it there to accelerate further transfers
+
+
+- block:
+  - include: check_vars.yml
+    tags:
+      - bambooagent:checks
+      - checks
+
+#
+# OSX
+#
+- block:
+  - name: '[PYTHON3] transfer installation package'
+    copy:
+      src: "{{ python3_installer.file }}"
+      dest: "/tmp/{{ python3_installer.file | basename }}"
+
+  - name: '[PYTHON3] package installation'
+    shell: "installer -allowUntrusted -dumplog -pkg \"/tmp/{{ python3_installer.file | basename }}\" -target /"
+        
+  - name: '[PYTHON3] locating python3 binary'
+    shell: 'bash -l -c "which python3"'
+    register: python3_which_output
+    ignore_errors: False
+    tags: 
+    - capability
+    
+  - name: '[PYTHON3] locate'
+    set_fact:
+      python_binary_location="{{ python3_which_output.stdout }}"
+    tags: 
+    - capability
+          
+  when: ansible_distribution=="MacOSX"
+  tags: 
+  - python3 
+
+  rescue:
+  - debug:
+      msg="An error occured"
+  - command: /bin/false
+
+#
+# linux: installation with regular packages
+#
+- block:
+  - name: '[PYTHON3] install python3 standard packages'
+    apt: name="{{ item }}" update_cache=yes state=present cache_valid_time=3600
+    with_items: 
+     - "{{ python%s.%s' % (python3_version.major, python3_version.minor) }}"
+     - "{{ libpython%s.%s-dev' % (python3_version.major, python3_version.minor) }}"
+
+  when: (ansible_distribution=="Ubuntu")
+  tags: 
+  - python3
+  - installation 
+
+
+#
+# REGISTER python3 into bamboo capabilities
+#
+- name: '[BAMBOO][PYTHON3] register python3 capability'
+  set_fact:
+    bamboo_capabilities: "{{ bamboo_capabilities | combine({'system.builder.command.python%s.%s' % (python3_version.major, python3_version.minor): python_binary_location }) }}"
+  tags: 
+  - python3
+  - capability 
+    
