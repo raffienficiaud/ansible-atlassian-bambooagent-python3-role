@@ -7,61 +7,53 @@
 #   to keep it there to accelerate further transfers
 
 
+- name: '[PYTHON3] Checking that required variables are set'
+  fail: msg="{{ item }} is not defined"
+  when: item is undefined
+  with_items:
+    - python3_version
+    - python3_installer
+
+#
+#
+# Windows
+#
+#
+
 - block:
-  - include: check_vars.yml
-    tags:
-      - bambooagent:checks
-      - checks
 
-#
-#
-# Windows / work in progress
-#
-#
-#- name: '[PYTHON3] checking existing Java installation'
-#  win_command: "java -version"
-#  register: java_checking_windows
-#  ignore_errors: True
-#  when: ansible_os_family=="Windows"
-#
-#- block:
-#
-#  - name: '[PYTHON3] copy the installer'
-#    win_copy:
-#      src: "{{ python3_installer.file }}"
-#      dest: "{{ansible_env['TEMP']}}/"  
-#    when: False
-#
-#  - name: '[PYTHON3] installation'
-#    win_command: "start /w {{python3_installer.file | basename }} /quiet"
-#    args:
-#      executable: cmd
-#      chdir: "{{ ansible_env['TEMP'] }}"
-#
-#  - name: '[PYTHON3] installation'
-#    win_package:
-#      path: "{{ ansible_env['TEMP'] }}\{{python3_installer.file | basename}}"
-#      state: present
-#      InstallAllUsers=1 Include_debug=1 TargetDir=C:\Python34
-#
-#  - name: '[PYTHON3] check python3 from prompt'
-#    win_command: "python3 --version"
-#    register: python3_checking_windows
-#    ignore_errors: False
-#  
-#  # can be in a separate block if we do not want to install java on some conditions
-#  - name: '[PYTHON3] finding the installation path'
-#    win_shell: "(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\JavaSoft\\Java Development Kit\\1.{{ java_version_major }}' -Name JavaHome).JavaHome"
-#    register: python3_home_windows_tmp
-#  
-#  # replacing backslashes to forward ones
-#  - name: '[PYTHON3] finding the installation path'
-#    set_fact:
-#      python_binary_location: '{{ "".join(python3_home_windows_tmp.stdout_lines) | replace("\\", "/") }}'
-#      
-#  when: ansible_os_family=="Windows"
+  - name: '[PYTHON3] copy the installer'
+    win_copy:
+      src: "{{ python3_installer.file }}"
+      dest: "{{ ansible_env['TEMP'] }}\\{{python3_installer.file | basename}}"
 
+  # installs on a default folder c:\pythonXY
+  - name: '[PYTHON3] installation'
+    win_package:
+      path: "{{ ansible_env['TEMP'] }}\\{{python3_installer.file | basename}}"
+      state: present
+      creates_path: "C:\\Python{{python3_version.major}}{{python3_version.minor}}"
+      arguments: InstallAllUsers=1 Include_debug=1 TargetDir="C:\\Python{{python3_version.major}}{{python3_version.minor}}"
 
+  # replacing backslashes to forward ones
+  - name: '[PYTHON3] finding the installation path'
+    set_fact:
+      python_binary_location: "C:\\Python{{python3_version.major}}{{python3_version.minor}}"
+      
+  when: ansible_os_family=="Windows"
+
+  rescue:
+    - debug: msg="An error occured"
+    - command: /bin/false
+
+  always:
+    # pretty sure that this file will not get cleaned up
+    - file:
+        path: "{{ ansible_env['TEMP'] }}\\{{python3_installer.file | basename}}"
+        state: absent
+
+  tags: 
+    - python3 
 
 
 #
@@ -76,6 +68,34 @@
   - name: '[PYTHON3] package installation'
     shell: "installer -allowUntrusted -dumplog -pkg \"/tmp/{{ python3_installer.file | basename }}\" -target /"
         
+  when: (ansible_distribution=="MacOSX")
+
+  rescue:
+    - debug: msg="An error occured"
+    - command: /bin/false
+
+  tags: 
+    - python3 
+
+#
+# linux: installation with regular packages
+#
+- block:
+  - name: '[PYTHON3] install python3 standard packages'
+    apt: name="{{ item }}" update_cache=yes state=present cache_valid_time=3600
+    with_items: 
+     - "{{ 'python%s.%s' % (python3_version.major, python3_version.minor) }}"
+     - "{{ 'libpython%s.%s-dev' % (python3_version.major, python3_version.minor) }}"
+
+  when: (ansible_distribution=="Ubuntu")
+
+  tags: 
+    - python3
+
+
+# locating python3 for OSX and Ubuntu for filling the capability
+- block:
+
   - name: '[PYTHON3] locating python3 binary'
     shell: 'bash -l -c "which python3"'
     register: python3_which_output
@@ -89,29 +109,14 @@
     tags: 
     - capability
           
-  when: ansible_distribution=="MacOSX"
-  tags: 
-  - python3 
-
+  when: (ansible_distribution=="MacOSX") or (ansible_distribution=="Ubuntu")
+  
   rescue:
-  - debug:
-      msg="An error occured"
-  - command: /bin/false
+    - debug: msg="An error occured"
+    - command: /bin/false
 
-#
-# linux: installation with regular packages
-#
-- block:
-  - name: '[PYTHON3] install python3 standard packages'
-    apt: name="{{ item }}" update_cache=yes state=present cache_valid_time=3600
-    with_items: 
-     - "{{ python%s.%s' % (python3_version.major, python3_version.minor) }}"
-     - "{{ libpython%s.%s-dev' % (python3_version.major, python3_version.minor) }}"
-
-  when: (ansible_distribution=="Ubuntu")
   tags: 
-  - python3
-  - installation 
+    - python3 
 
 
 #
