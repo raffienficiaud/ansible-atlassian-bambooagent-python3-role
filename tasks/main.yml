@@ -109,7 +109,7 @@
     tags: 
     - capability
           
-  when: (ansible_distribution=="MacOSX") or (ansible_distribution=="Ubuntu")
+  when: ansible_os_family!="Windows"
   
   rescue:
     - debug: msg="An error occured"
