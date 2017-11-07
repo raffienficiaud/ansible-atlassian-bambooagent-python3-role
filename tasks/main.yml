@@ -48,7 +48,7 @@
 
   always:
     # pretty sure that this file will not get cleaned up
-    - file:
+    - win_file:
         path: "{{ ansible_env['TEMP'] }}\\{{python3_installer.file | basename}}"
         state: absent
 
