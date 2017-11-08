@@ -32,23 +32,53 @@
     win_package:
       path: "{{ ansible_env['TEMP'] }}\\{{python3_installer.file | basename}}"
       state: present
-      creates_path: "C:\\Python{{python3_version.major}}{{python3_version.minor}}"
-      arguments: InstallAllUsers=1 Include_debug=1 TargetDir="C:\\Python{{python3_version.major}}{{python3_version.minor}}"
-
-  # replacing backslashes to forward ones
-  - name: '[PYTHON3] finding the installation path'
-    set_fact:
-      python_binary_location: "C:\\Python{{python3_version.major}}{{python3_version.minor}}"
+      creates_path: "{{ windows_python_default_install }}"
+      arguments: InstallAllUsers=1 PrependPath=1 Include_debug=1 TargetDir="{{ windows_python_default_install }}"
       
+  # 
+  #- name: '[PYTHON3] running python3'
+  #  win_command: "{{ windows_python_default_install }}\\python -c \"import sys; print('%d.%d\\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))\""
+  #  register: python_binary_location
+
+  #- name: '[PYTHON3] finding the installation path'
+  #  set_fact:
+  #    python_binary_location: "C:\\Python{{python3_version.major}}{{python3_version.minor}}"
+
+  #- debug:
+  #    var: python_binary_location
+
+  - name: '[PYTHON3] locating python3 binary'
+    win_command: "{{ windows_python_default_install }}\\python -c \"import sys; print('%d.%d\\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))\""
+    register: python3_output
+    ignore_errors: False
+    tags: 
+      - capability
+
+  #- debug:
+  #    var: python3_output
+
+  - name: '[PYTHON3] registering python3'
+    set_fact:
+      bamboo_capabilities: "{{ bamboo_capabilities | combine({item.key:item.value}) }}"
+    with_items:
+      - key: 'system.builder.command.python{{python3_output.stdout_lines.0}}'
+        value: '{{ python3_output.stdout_lines.1 }}'      
+    tags: 
+      - capability
+
+  vars:
+    windows_python_default_install: C:\\Python{{python3_version.major}}{{python3_version.minor}}
+
   when: ansible_os_family=="Windows"
 
   rescue:
     - debug: msg="An error occured"
-    - command: /bin/false
+    - win_command: /bin/false
 
   always:
     # pretty sure that this file will not get cleaned up
-    - win_file:
+    - name: '[PYTHON3] removing unused installer'
+      win_file:
         path: "{{ ansible_env['TEMP'] }}\\{{python3_installer.file | basename}}"
         state: absent
 
@@ -57,7 +87,7 @@
 
 
 #
-# OSX
+# OSX / installation
 #
 - block:
   - name: '[PYTHON3] transfer installation package'
@@ -78,7 +108,7 @@
     - python3 
 
 #
-# linux: installation with regular packages
+# linux / installation with regular packages
 #
 - block:
   - name: '[PYTHON3] install python3 standard packages'
@@ -93,21 +123,24 @@
     - python3
 
 
-# locating python3 for OSX and Ubuntu for filling the capability
+# locating python3 for OSX and Ubuntu and registering the bamboo capability
 - block:
 
   - name: '[PYTHON3] locating python3 binary'
-    shell: 'bash -l -c "which python3"'
-    register: python3_which_output
+    shell: python3 -c "import sys; print('%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))"
+    register: python3_output
     ignore_errors: False
     tags: 
     - capability
     
-  - name: '[PYTHON3] locate'
+  - name: '[PYTHON3] registering python3'
     set_fact:
-      python_binary_location="{{ python3_which_output.stdout }}"
+      bamboo_capabilities: "{{ bamboo_capabilities | combine({item.key:item.value}) }}"
+    with_items:
+      - key: 'system.builder.command.python{{python3_output.stdout_lines.0}}'
+        value: '{{ python3_output.stdout_lines.1 }}'      
     tags: 
-    - capability
+      - capability
           
   when: ansible_os_family!="Windows"
   
@@ -122,10 +155,19 @@
 #
 # REGISTER python3 into bamboo capabilities
 #
-- name: '[BAMBOO][PYTHON3] register python3 capability'
-  set_fact:
-    bamboo_capabilities: "{{ bamboo_capabilities | combine({'system.builder.command.python%s.%s' % (python3_version.major, python3_version.minor): python_binary_location }) }}"
-  tags: 
-  - python3
-  - capability 
-    
+##- name: '[BAMBOO][PYTHON3] register python3 capability'
+##  set_fact:
+##    bamboo_capabilities: "{{ bamboo_capabilities | combine({'system.builder.command.python%s.%s' % (python3_version.major, python3_version.minor): python_binary_location }) }}"
+##  tags: 
+##  - python3
+##  - capability 
+##
+##      - name: '[BAMBOO] register python'
+##        set_fact:
+##          bamboo_capabilities: "{{ bamboo_capabilities | combine({item.key:item.value}) }}"
+##        with_items:
+##          - key: 'system.builder.command.python{{bamboo_capability_python_version.stdout_lines.0}}'
+##            value: '{{ bamboo_capability_python_version.stdout_lines.1 }}'    
+##
+#- debug:
+#    var: bamboo_capabilities
