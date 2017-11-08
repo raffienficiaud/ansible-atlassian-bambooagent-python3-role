@@ -150,24 +150,3 @@
 
   tags: 
     - python3 
-
-
-#
-# REGISTER python3 into bamboo capabilities
-#
-##- name: '[BAMBOO][PYTHON3] register python3 capability'
-##  set_fact:
-##    bamboo_capabilities: "{{ bamboo_capabilities | combine({'system.builder.command.python%s.%s' % (python3_version.major, python3_version.minor): python_binary_location }) }}"
-##  tags: 
-##  - python3
-##  - capability 
-##
-##      - name: '[BAMBOO] register python'
-##        set_fact:
-##          bamboo_capabilities: "{{ bamboo_capabilities | combine({item.key:item.value}) }}"
-##        with_items:
-##          - key: 'system.builder.command.python{{bamboo_capability_python_version.stdout_lines.0}}'
-##            value: '{{ bamboo_capability_python_version.stdout_lines.1 }}'    
-##
-#- debug:
-#    var: bamboo_capabilities
