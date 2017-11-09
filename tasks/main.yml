@@ -28,6 +28,7 @@
       dest: "{{ ansible_env['TEMP'] }}\\{{python3_installer.file | basename}}"
 
   # installs on a default folder c:\pythonXY
+  # the PrependPath requires an installed >= 3.5, so we need to indicate the TargetDir
   - name: '[PYTHON3] installation'
     win_package:
       path: "{{ ansible_env['TEMP'] }}\\{{python3_installer.file | basename}}"
