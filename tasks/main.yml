@@ -113,7 +113,11 @@
 #
 - block:
   - name: '[PYTHON3] install python3 standard packages'
-    apt: name="{{ item }}" update_cache=yes state=present cache_valid_time=3600
+    apt: 
+      name: "{{ item }}" 
+      update_cache: yes 
+      state: present 
+      cache_valid_time: 3600
     with_items: 
      - "{{ 'python%s.%s' % (python3_version.major, python3_version.minor) }}"
      - "{{ 'libpython%s.%s-dev' % (python3_version.major, python3_version.minor) }}"
