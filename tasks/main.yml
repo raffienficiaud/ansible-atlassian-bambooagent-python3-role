@@ -135,9 +135,19 @@
     shell: python3 -c "import sys; print('%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))"
     register: python3_output
     ignore_errors: False
+    when: (ansible_distribution=="Ubuntu")
     tags: 
-    - capability
+      - capability
     
+
+  - name: '[PYTHON3] locating python3 binary'
+    shell: /usr/local/bin/python3 -c "import sys; print('%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))"
+    register: python3_output
+    ignore_errors: False
+    when: (ansible_distribution=="MacOSX")
+    tags: 
+      - capability
+
   - name: '[PYTHON3] registering python3'
     set_fact:
       bamboo_capabilities: "{{ bamboo_capabilities | combine({item.key:item.value}) }}"
