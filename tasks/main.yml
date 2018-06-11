@@ -133,7 +133,7 @@
 
   - name: '[PYTHON3] locating python3 binary'
     shell: python3 -c "import sys; print('%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))"
-    register: python3_output
+    register: python3_output_ubuntu
     ignore_errors: False
     when: (ansible_distribution=="Ubuntu")
     tags: 
@@ -142,11 +142,15 @@
 
   - name: '[PYTHON3] locating python3 binary'
     shell: /usr/local/bin/python3 -c "import sys; print('%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))"
-    register: python3_output
+    register: python3_output_osx
     ignore_errors: False
     when: (ansible_distribution=="MacOSX")
     tags: 
       - capability
+      
+  - name: '[PYTHON3] combine python3_outputs' # to avoid writting over during to skipped tasks
+    set_fact:
+      python3_output: "{{ python3_output_ubuntu if (ansible_distribution=='Ubuntu') else python3_output_osx }}"
 
   - name: '[PYTHON3] registering python3'
     set_fact:
