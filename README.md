@@ -84,14 +84,11 @@ Example Playbook
         python3_installer: "{{ bamboo_python3_installer }}"
 
     post_tasks:
-        - name: '[BAMBOO] Flush the capabilities into the agents file'
-          lineinfile:
-            dest="{{ bambooagent_capability_file }}"
-            state=present
-            regexp="^{{item.key}}="
-            line="{{item.key}}={{item.value}}"
-          with_dict: "{{bamboo_capabilities}}"
-          tags:
+      - name: Updating the agent capability file
+        include_role:
+          name: atlassian-bambooagent-role
+          tasks_from: write_capability
+        tags:
           - capability:write
   ```
 

@@ -35,8 +35,8 @@
       state: present
       creates_path: "{{ windows_python_default_install }}"
       arguments: InstallAllUsers=1 PrependPath=1 Include_debug=1 TargetDir="{{ windows_python_default_install }}"
-      
-  # 
+
+  #
   #- name: '[PYTHON3] running python3'
   #  win_command: "{{ windows_python_default_install }}\\python -c \"import sys; print('%d.%d\\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))\""
   #  register: python_binary_location
@@ -52,7 +52,7 @@
     win_command: "{{ windows_python_default_install }}\\python -c \"import sys; print('%d.%d\\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))\""
     register: python3_output
     ignore_errors: False
-    tags: 
+    tags:
       - capability
 
   #- debug:
@@ -63,8 +63,8 @@
       bamboo_capabilities: "{{ bamboo_capabilities | combine({item.key:item.value}) }}"
     with_items:
       - key: 'system.builder.command.python{{python3_output.stdout_lines.0}}'
-        value: '{{ python3_output.stdout_lines.1 }}'      
-    tags: 
+        value: '{{ python3_output.stdout_lines.1 }}'
+    tags:
       - capability
 
   vars:
@@ -83,8 +83,8 @@
         path: "{{ ansible_env['TEMP'] }}\\{{python3_installer.file | basename}}"
         state: absent
 
-  tags: 
-    - python3 
+  tags:
+    - python3
 
 
 #
@@ -98,33 +98,34 @@
 
   - name: '[PYTHON3] package installation'
     shell: "installer -allowUntrusted -dumplog -pkg \"/tmp/{{ python3_installer.file | basename }}\" -target /"
-        
+
   when: (ansible_distribution=="MacOSX")
 
   rescue:
     - debug: msg="An error occured"
     - command: /bin/false
 
-  tags: 
-    - python3 
+  tags:
+    - python3
 
 #
 # linux / installation with regular packages
 #
 - block:
   - name: '[PYTHON3] install python3 standard packages'
-    apt: 
-      name: "{{ item }}" 
-      update_cache: yes 
-      state: present 
+    apt:
+      name: "{{ packages }}"
+      update_cache: yes
+      state: present
       cache_valid_time: 3600
-    with_items: 
-     - "{{ 'python%s.%s' % (python3_version.major, python3_version.minor) }}"
-     - "{{ 'libpython%s.%s-dev' % (python3_version.major, python3_version.minor) }}"
+    vars:
+      packages:
+        - "{{ 'python%s.%s' % (python3_version.major, python3_version.minor) }}"
+        - "{{ 'libpython%s.%s-dev' % (python3_version.major, python3_version.minor) }}"
 
   when: (ansible_distribution=="Ubuntu")
 
-  tags: 
+  tags:
     - python3
 
 
@@ -136,18 +137,18 @@
     register: python3_output_ubuntu
     ignore_errors: False
     when: (ansible_distribution=="Ubuntu")
-    tags: 
+    tags:
       - capability
-    
+
 
   - name: '[PYTHON3] locating python3 binary'
     shell: /usr/local/bin/python3 -c "import sys; print('%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))"
     register: python3_output_osx
     ignore_errors: False
     when: (ansible_distribution=="MacOSX")
-    tags: 
+    tags:
       - capability
-      
+
   - name: '[PYTHON3] combine python3_outputs' # to avoid writting over during to skipped tasks
     set_fact:
       python3_output: "{{ python3_output_ubuntu if (ansible_distribution=='Ubuntu') else python3_output_osx }}"
@@ -157,15 +158,15 @@
       bamboo_capabilities: "{{ bamboo_capabilities | combine({item.key:item.value}) }}"
     with_items:
       - key: 'system.builder.command.python{{python3_output.stdout_lines.0}}'
-        value: '{{ python3_output.stdout_lines.1 }}'      
-    tags: 
+        value: '{{ python3_output.stdout_lines.1 }}'
+    tags:
       - capability
-          
+
   when: ansible_os_family!="Windows"
-  
+
   rescue:
     - debug: msg="An error occured"
     - command: /bin/false
 
-  tags: 
-    - python3 
+  tags:
+    - python3
