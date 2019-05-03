@@ -1,0 +1,68 @@
+#
+#
+# Windows
+# Python3 installation from an installer file and bamboo capability registration
+#
+
+- block:
+
+  - name: '[PYTHON3] copy the installer'
+    win_copy:
+      src: "{{ python3_installer.file }}"
+      dest: "{{ ansible_env['TEMP'] }}\\{{ python3_installer.file | basename }}"
+
+  # installs on a default folder c:\pythonXY
+  # the PrependPath requires an installed >= 3.5, so we need to indicate the TargetDir
+  - name: '[PYTHON3] installation (MSI)'
+    win_package:
+      path: "{{ ansible_env['TEMP'] }}\\{{ python3_installer.file | basename }}"
+      state: present
+      creates_path: "{{ windows_python3_installation_folder }}"
+      arguments: InstallAllUsers=1 PrependPath=1 TargetDir="{{ windows_python3_installation_folder }}"
+    when: python3_installer.file[-4:].lower() == '.msi'
+    # Include_debug=1 Include_doc=1
+    # same as below, see comment for the .exe installation
+
+  - name: '[PYTHON3] installation (EXE)'
+    win_command: '{{ python3_installer.file | basename }} /quiet InstallAllUsers=1 PrependPath=1 TargetDir="{{ windows_python3_installation_folder }}"'
+    args:
+      chdir: "{{ ansible_env['TEMP'] }}"
+      creates: "{{ windows_python3_installation_folder }}"
+      executable: cmd
+    when: python3_installer.file[-4:].lower() == '.exe'
+    # those are options that can be passed, but only if the user did a proper layout install before. This is complicating things
+    # and we are not doing right now. Options below.
+    # Another possibility would be to have an internet connexion during the installation.
+    # Include_symbols=1 Include_debug=1 Include_doc=1
+
+  - name: '[PYTHON3] locating python3 binary'
+    win_command: "{{ windows_python3_installation_folder }}\\python -c \"import sys; print('%d.%d\\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))\""
+    register: python3_output
+    ignore_errors: False
+    tags:
+      - capability
+
+  - name: '[PYTHON3] registering python3 to Bamboo capabilities'
+    set_fact:
+      bamboo_capabilities: "{{ ( bamboo_capabilities | default({}) ) | combine({item.key:item.value}) }}"
+    with_items:
+      - key: 'system.builder.command.python{{python3_output.stdout_lines.0}}'
+        value: '{{ python3_output.stdout_lines.1 }}'
+    tags:
+      - capability
+
+  when: ansible_os_family == "Windows"
+
+  rescue:
+    - debug: msg="An error occured"
+    - win_command: /bin/false
+
+  always:
+    # pretty sure that this file will not get cleaned up
+    - name: '[PYTHON3] removing unused installer'
+      win_file:
+        path: "{{ ansible_env['TEMP'] }}\\{{python3_installer.file | basename}}"
+        state: absent
+
+  tags:
+    - python3

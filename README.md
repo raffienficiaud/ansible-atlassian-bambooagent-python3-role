@@ -1,12 +1,14 @@
 Atlassian Bamboo agent Python3 role
 ===================================
 
-Installs a specific version of `python3` (from an installer or Debian packages) into a remote Atlassian Bamboo build agent and declares its capabilities to the agent.
+Installs `python3` from an installer or Debian packages into a remote machine and declares the `python3` as a Bamboo system command capability.
 
 Requirements
 ------------
 
-This role needs to declare the `python3` capabilities after installation, and relies on the format of the role `raffienficiaud.atlassian-bambooagent-role` for declaring those.
+This role does not have any particular requirement, except that the installers need to be available for Windows and OSX (no brew or chocolatey involved, no
+Internet connexion needed).
+On Ubuntu, it relies on the OS packaging system, so an Internet connexion is required.
 
 Role Variables
 --------------
@@ -15,7 +17,8 @@ Role Variables
 |----------|---------|---------|
 |python3_version| **required**| the exact version of `python3`|
 |python3_installer| **required** | the installer file (OSX, Windows)|
-|bamboo_capabilities|**required**| capabilities that will be populated by the role. |
+|bamboo_capabilities| (empty dict) | capabilities that will be populated by the role. |
+|windows_python3_installation_folder| `C:\Python37` | Installation folder for Windows. |
 
 ### Capabilities declared by the role
 
@@ -72,10 +75,10 @@ Example Playbook
       - osfile_location: "{% if ansible_distribution=='MacOSX' %}osx{% elif ansible_distribution=='Ubuntu' %}linux{% elif ansible_os_family=='Windows' %}windows{% endif %}"
 
     pre_tasks:
-
-      - name: '[BAMBOO] empty capabilities declaration'
-        set_fact:
-          bamboo_capabilities: {}
+      - name: Reading the agent capability file
+        include_role:
+          name: atlassian-bambooagent-role
+          tasks_from: read_capability
 
     roles:
       # Adding python3 role to the agent
@@ -88,8 +91,6 @@ Example Playbook
         include_role:
           name: atlassian-bambooagent-role
           tasks_from: write_capability
-        tags:
-          - capability:write
   ```
 
 License
@@ -100,4 +101,4 @@ BSD
 Author Information
 ------------------
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+Raffi Enficiaud (see GitHub account for more details).

@@ -1,7 +1,3 @@
-
-# this variable needs to be defined
-bamboo_capabilities: {}
-
 python3_version:
   major: 0
   minor: 0
@@ -10,3 +6,6 @@ python3_version:
 # this is for installer provided versions of python (OSX)
 python3_installer:
   file: "does-not-exist"
+
+# default installation location for Windows. We do not choose for the other operating systems.
+windows_python3_installation_folder: "C:\\Python{{python3_version.major}}{{python3_version.minor}}"
