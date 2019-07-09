@@ -8,4 +8,4 @@ python3_installer:
   file: "does-not-exist"
 
 # default installation location for Windows. We do not choose for the other operating systems.
-windows_python3_installation_folder: "C:\\Python{{python3_version.major}}{{python3_version.minor}}"
+windows_python3_installation_folder: "C:\\Python{{ python3_version.major }}{{ python3_version.minor }}"

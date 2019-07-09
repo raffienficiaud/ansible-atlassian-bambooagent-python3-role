@@ -4,6 +4,12 @@
 # Python3 installation from an installer file and bamboo capability registration
 #
 
+- name: '[JAVA][WIN] check if installation already exists'
+  win_reg_stat:
+    path: HKLM:\SOFTWARE\Python\PythonCore\{{ python3_version.major }}.{{ python3_version.minor }}
+    name: Version
+  register: python3_checking_windows
+
 - block:
 
   - name: '[PYTHON3] copy the installer'
@@ -51,18 +57,20 @@
     tags:
       - capability
 
-  when: ansible_os_family == "Windows"
+  when: 
+    - ansible_os_family == "Windows"
+    - (not python3_checking_windows.exists) or (python3_checking_windows.value != "{{ python3_version.major }}.{{ python3_version.minor }}.{{ python3_version.patch }}")
 
   rescue:
-    - debug: msg="An error occured"
-    - win_command: /bin/false
+    - fail: 
+        msg: "An error occured"
 
-  always:
-    # pretty sure that this file will not get cleaned up
-    - name: '[PYTHON3] removing unused installer'
-      win_file:
-        path: "{{ ansible_env['TEMP'] }}\\{{python3_installer.file | basename}}"
-        state: absent
+  #always:
+  #  # pretty sure that this file will not get cleaned up
+  #  #- name: '[PYTHON3] removing unused installer'
+  #  #  win_file:
+  #  #    path: "{{ ansible_env['TEMP'] }}\\{{python3_installer.file | basename}}"
+  #  #    state: absent
 
   tags:
     - python3

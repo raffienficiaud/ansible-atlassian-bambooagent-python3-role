@@ -1,6 +1,14 @@
 #
 # OSX / installation
 #
+
+- name: '[PYTHON3] checking python3 installation'
+  shell: /usr/local/bin/python{{ python3_version.major }}.{{ python3_version.minor }} -c "import sys; print('%d.%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.version_info.micro, sys.executable))"
+  register: python3_check
+  ignore_errors: True
+  tags:
+    - capability
+
 - block:
   - name: '[PYTHON3] transfer installation package'
     copy:
@@ -10,27 +18,29 @@
   - name: '[PYTHON3] package installation'
     shell: "installer -allowUntrusted -dumplog -pkg \"/tmp/{{ python3_installer.file | basename }}\" -target /"
 
-  - name: '[PYTHON3] locating python3 binary'
-    shell: /usr/local/bin/python3 -c "import sys; print('%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))"
-    register: python3_output_osx
-    ignore_errors: False
-    tags:
-      - capability
-
-  - name: '[PYTHON3] registering python3 to Bamboo capabilities'
-    set_fact:
-      bamboo_capabilities: "{{ ( bamboo_capabilities | default({})) | combine({item.key:item.value}) }}"
-    with_items:
-      - key: 'system.builder.command.python{{python3_output_osx.stdout_lines.0}}'
-        value: '{{ python3_output_osx.stdout_lines.1 }}'
-    tags:
-      - capability
-
-  when: ansible_distribution == "MacOSX"
+  when: 
+    - ansible_distribution == "MacOSX"
+    - python3_check is failed or python3_check.stdout_lines.0 != "{{ python3_version.major }}.{{ python3_version.minor }}.{{ python3_version.patch }}"
 
   rescue:
-    - debug: msg="An error occured"
-    - command: /bin/false
+    - fail: 
+        msg: "An error occurred"
 
   tags:
     - python3
+
+- name: '[PYTHON3] locating python3 binary'
+  shell: /usr/local/bin/python{{ python3_version.major }}.{{ python3_version.minor }} -c "import sys; print('%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))"
+  register: python3_output_osx
+  ignore_errors: False
+  tags:
+    - capability
+
+- name: '[PYTHON3] registering python3 to Bamboo capabilities'
+  set_fact:
+    bamboo_capabilities: "{{ ( bamboo_capabilities | default({})) | combine({item.key:item.value}) }}"
+  loop:
+    - key: 'system.builder.command.python{{ python3_output_osx.stdout_lines.0 }}'
+      value: '{{ python3_output_osx.stdout_lines.1 }}'
+  tags:
+    - capability
