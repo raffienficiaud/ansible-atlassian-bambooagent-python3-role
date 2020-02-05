@@ -42,12 +42,13 @@
     # Include_symbols=1 Include_debug=1 Include_doc=1
 
   when:
-    - ansible_os_family == "Windows"
-    - (not python3_checking_windows.exists) or (python3_checking_windows.value != "%d.%d.%d" % (python3_version.major, python3_version.minor, python3_version.patch))
+    - (not python3_checking_windows.exists) or
+      (python3_checking_windows.value != "%d.%d.%d" % (python3_version.major, python3_version.minor, python3_version.patch))
 
   rescue:
-    - fail:
-        msg: "An error occured"
+    - name: fail the task
+      fail:
+        msg: "An error occurred"
 
   #always:
   #  # pretty sure that this file will not get cleaned up
@@ -62,7 +63,9 @@
 
 # outside of the previous block otherwise not reexecuted if python3 already there.
 - name: '[PYTHON3] locating python3 binary'
-  win_command: "{{ windows_python3_installation_folder }}\\python -c \"import sys; print('%d.%d\\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))\""
+  win_command: >
+    {{ windows_python3_installation_folder }}\\python
+    -c "import sys; print('%d.%d\\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))"
   register: python3_output
   ignore_errors: False
   tags:
@@ -72,7 +75,7 @@
   set_fact:
     bamboo_capabilities: "{{ ( bamboo_capabilities | default({}) ) | combine({item.key:item.value}) }}"
   with_items:
-    - key: 'system.builder.command.python{{python3_output.stdout_lines.0}}'
+    - key: 'system.builder.command.python{{ python3_output.stdout_lines.0 }}'
       value: '{{ python3_output.stdout_lines.1 }}'
   tags:
     - capability

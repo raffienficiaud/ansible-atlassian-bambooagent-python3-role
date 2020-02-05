@@ -3,7 +3,9 @@
 #
 
 - name: '[PYTHON3] checking python3 installation'
-  shell: /usr/local/bin/python{{ python3_version.major }}.{{ python3_version.minor }} -c "import sys; print('%d.%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.version_info.micro, sys.executable))"
+  shell: >-
+    /usr/local/bin/python{{ python3_version.major }}.{{ python3_version.minor }}
+    -c "import sys; print('%d.%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.version_info.micro, sys.executable))"
   register: python3_check
   ignore_errors: True
   tags:
@@ -18,19 +20,23 @@
   - name: '[PYTHON3] package installation'
     shell: "installer -allowUntrusted -dumplog -pkg \"/tmp/{{ python3_installer.file | basename }}\" -target /"
 
-  when: 
+  when:
     - ansible_distribution == "MacOSX"
-    - python3_check is failed or python3_check.stdout_lines.0 != "{{ python3_version.major }}.{{ python3_version.minor }}.{{ python3_version.patch }}"
+    - (python3_check is failed) or
+      (python3_check.stdout_lines.0 != "%d.%d.%d" % (python3_version.major, python3_version.minor, python3_version.patch))
 
   rescue:
-    - fail: 
+    - name: fail the task
+      fail:
         msg: "An error occurred"
 
   tags:
     - python3
 
 - name: '[PYTHON3] locating python3 binary'
-  shell: /usr/local/bin/python{{ python3_version.major }}.{{ python3_version.minor }} -c "import sys; print('%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))"
+  shell: >-
+    /usr/local/bin/python{{ python3_version.major }}.{{ python3_version.minor }}
+    -c "import sys; print('%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))"
   register: python3_output_osx
   ignore_errors: False
   tags:

@@ -38,6 +38,5 @@
     tags:
       - capability
 
-  when: (ansible_distribution=="Ubuntu")
   tags:
     - python3

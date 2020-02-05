@@ -8,7 +8,8 @@
 
 
 - name: '[PYTHON3] Checking that required variables are set'
-  fail: msg="{{ item }} is not defined"
+  fail:
+    msg: "{{ item }} is not defined"
   when: item is undefined
   with_items:
     - python3_version
