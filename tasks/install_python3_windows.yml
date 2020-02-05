@@ -4,7 +4,7 @@
 # Python3 installation from an installer file and bamboo capability registration
 #
 
-- name: '[JAVA][WIN] check if installation already exists'
+- name: '[PYTHON3][WIN] check if installation already exists'
   win_reg_stat:
     path: HKLM:\SOFTWARE\Python\PythonCore\{{ python3_version.major }}.{{ python3_version.minor }}
     name: Version
@@ -41,28 +41,12 @@
     # Another possibility would be to have an internet connexion during the installation.
     # Include_symbols=1 Include_debug=1 Include_doc=1
 
-  - name: '[PYTHON3] locating python3 binary'
-    win_command: "{{ windows_python3_installation_folder }}\\python -c \"import sys; print('%d.%d\\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))\""
-    register: python3_output
-    ignore_errors: False
-    tags:
-      - capability
-
-  - name: '[PYTHON3] registering python3 to Bamboo capabilities'
-    set_fact:
-      bamboo_capabilities: "{{ ( bamboo_capabilities | default({}) ) | combine({item.key:item.value}) }}"
-    with_items:
-      - key: 'system.builder.command.python{{python3_output.stdout_lines.0}}'
-        value: '{{ python3_output.stdout_lines.1 }}'
-    tags:
-      - capability
-
-  when: 
+  when:
     - ansible_os_family == "Windows"
-    - (not python3_checking_windows.exists) or (python3_checking_windows.value != "{{ python3_version.major }}.{{ python3_version.minor }}.{{ python3_version.patch }}")
+    - (not python3_checking_windows.exists) or (python3_checking_windows.value != "%d.%d.%d" % (python3_version.major, python3_version.minor, python3_version.patch))
 
   rescue:
-    - fail: 
+    - fail:
         msg: "An error occured"
 
   #always:
@@ -74,3 +58,21 @@
 
   tags:
     - python3
+
+
+# outside of the previous block otherwise not reexecuted if python3 already there.
+- name: '[PYTHON3] locating python3 binary'
+  win_command: "{{ windows_python3_installation_folder }}\\python -c \"import sys; print('%d.%d\\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))\""
+  register: python3_output
+  ignore_errors: False
+  tags:
+    - capability
+
+- name: '[PYTHON3] registering python3 to Bamboo capabilities'
+  set_fact:
+    bamboo_capabilities: "{{ ( bamboo_capabilities | default({}) ) | combine({item.key:item.value}) }}"
+  with_items:
+    - key: 'system.builder.command.python{{python3_output.stdout_lines.0}}'
+      value: '{{ python3_output.stdout_lines.1 }}'
+  tags:
+    - capability
