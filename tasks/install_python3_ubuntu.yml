@@ -12,25 +12,30 @@
     vars:
       packages:
         - "{{ 'python%s.%s' % (python3_version.major, python3_version.minor) }}"
+        - "{{ 'python%s.%s-venv' % (python3_version.major, python3_version.minor) }}"
         - "{{ 'libpython%s.%s-dev' % (python3_version.major, python3_version.minor) }}"
 
-  - name: '[PYTHON3] locating python3 binary'
-    shell: python3 -c "import sys; print('%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))"
+  - name: '[PYTHON3] locating python3 binaries'
+    shell: "{{ item.key }} -c \"{{ item.value }}\""
     register: python3_output_ubuntu
     ignore_errors: False
+    loop:
+      - key: python3
+        value: import sys; print('system.builder.command.python%d\n%s' % (sys.version_info.major, sys.executable))
+      - key: python3
+        value: import sys; print('system.builder.command.python%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))
+      - key: "python{{ python3_version.major }}.{{ python3_version.minor }}"
+        value: import sys; print('system.builder.command.python%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))
     tags:
       - capability
 
   - name: '[PYTHON3] registering python3 to Bamboo capabilities'
     set_fact:
-      bamboo_capabilities: "{{ (bamboo_capabilities | default({})) | combine({item.key:item.value}) }}"
-    with_items:
-      - key: 'system.builder.command.python{{python3_output_ubuntu.stdout_lines.0}}'
-        value: '{{ python3_output_ubuntu.stdout_lines.1 }}'
+      bamboo_capabilities: "{{ (bamboo_capabilities | default({})) | combine({item.stdout_lines.0:item.stdout_lines.1}) }}"
+    loop: "{{ python3_output_ubuntu.results }}"
     tags:
       - capability
 
   when: (ansible_distribution=="Ubuntu")
-
   tags:
     - python3
