@@ -11,6 +11,7 @@
       cache_valid_time: 3600
     vars:
       packages:
+        - "{{ 'python%s-venv' % python3_version.major }}"
         - "{{ 'python%s.%s' % (python3_version.major, python3_version.minor) }}"
         - "{{ 'python%s.%s-venv' % (python3_version.major, python3_version.minor) }}"
         - "{{ 'libpython%s.%s-dev' % (python3_version.major, python3_version.minor) }}"
@@ -21,17 +22,18 @@
     ignore_errors: False
     loop:
       - key: python3
-        value: import sys; print('system.builder.command.python%d\n%s' % (sys.version_info.major, sys.executable))
+        value: import sys; print('python%d\n%s' % (sys.version_info.major, sys.executable))
       - key: python3
-        value: import sys; print('system.builder.command.python%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))
+        value: import sys; print('python%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))
       - key: "python{{ python3_version.major }}.{{ python3_version.minor }}"
-        value: import sys; print('system.builder.command.python%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))
+        value: import sys; print('python%d.%d\n%s' % (sys.version_info.major, sys.version_info.minor, sys.executable))
     tags:
       - capability
+      - toto
 
   - name: '[PYTHON3] registering python3 to Bamboo capabilities'
     set_fact:
-      bamboo_capabilities: "{{ (bamboo_capabilities | default({})) | combine({item.stdout_lines.0:item.stdout_lines.1}) }}"
+      bamboo_capabilities: "{{ (bamboo_capabilities | default({})) | combine({ 'system.builder.command.' + item.stdout_lines.0:item.stdout_lines.1 }) }}"
     loop: "{{ python3_output_ubuntu.results }}"
     tags:
       - capability
